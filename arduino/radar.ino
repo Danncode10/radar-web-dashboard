@@ -1,8 +1,13 @@
-// RADAR SYSTEM - ESP32 Firmware
+// RADAR SYSTEM Firmware
 // Servo sweep with HC-SR04 ultrasonic sensor and LED alert.
-// Requires the ESP32Servo library (Tools > Manage Libraries > "ESP32Servo").
+// ESP32: install ESP32Servo library (Tools > Manage Libraries > "ESP32Servo").
+// Arduino: uses built-in Servo library, no extra install needed.
 
-#include <ESP32Servo.h>
+#ifdef ESP32
+  #include <ESP32Servo.h>
+#else
+  #include <Servo.h>
+#endif
 
 const int SERVO_PIN = 14;
 const int TRIG_PIN = 26;
@@ -41,7 +46,9 @@ void setup() {
 
   attachInterrupt(digitalPinToInterrupt(ECHO_PIN), echoInterrupt, CHANGE);
 
-  servo.setPeriodHertz(50);            // standard 50Hz servo
+#ifdef ESP32
+  servo.setPeriodHertz(50);
+#endif
   servo.attach(SERVO_PIN, 500, 2500);  // SG90 pulse range (us)
   servo.write(90);                     // center on startup
   delay(500);
