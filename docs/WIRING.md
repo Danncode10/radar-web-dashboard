@@ -23,48 +23,30 @@
 
 ## ⭐ Wiring Diagram — Follow This
 
+Each part connects to the ESP32 with one clean link — no crossing wires.
+Read the pin mapping inside each box.
+
 ```mermaid
-graph LR
-    subgraph ESP["ESP32 DevKit"]
-        VIN["VIN (=5V via USB)"]
-        GND["GND"]
-        G14["GPIO 14"]
-        G26["GPIO 26"]
-        G27["GPIO 27"]
-        G32["GPIO 32"]
-    end
+flowchart LR
+    ESP["<b>ESP32 DevKit</b><br/>───────────<br/>VIN &nbsp;(= USB 5V)<br/>GND<br/>GPIO 14<br/>GPIO 26<br/>GPIO 27<br/>GPIO 32"]
 
-    SERVO["SG90 Servo<br/>(brown / red / yellow)"]
+    SERVO["<b>SG90 Servo</b><br/>───────────<br/>Red → VIN<br/>Brown → GND<br/>Yellow → GPIO 14"]
 
-    subgraph HC["HC-SR04 (your pin order)"]
-        direction TB
-        SGND["1 · GND"]
-        SECHO["2 · ECHO"]
-        STRIG["3 · TRIG"]
-        SVCC["4 · VCC"]
-    end
+    SENSOR["<b>HC-SR04</b> (pins 1→4)<br/>───────────<br/>GND → GND<br/>ECHO → divider → GPIO 27<br/>TRIG → GPIO 26<br/>VCC → VIN"]
 
-    DIV(["Voltage divider<br/>R1 1kΩ + R2 2kΩ"])
-    RLED["220Ω → LED(+)"]
+    LED["<b>LED</b><br/>───────────<br/>GPIO 32 → 220Ω → LED (+)<br/>LED (−) → GND"]
 
-    VIN -->|red| SERVO
-    GND -->|brown| SERVO
-    G14 -->|yellow = signal| SERVO
+    ESP ===|power + signal| SERVO
+    ESP ===|power + signal| SENSOR
+    ESP ===|signal + GND| LED
 
-    VIN -->|red| SVCC
-    G26 -->|trigger| STRIG
-    SECHO -->|5V out| DIV
-    DIV -->|~3.3V| G27
-    SGND --> GND
-
-    G32 --> RLED
-    RLED -->|LED short leg| GND
-
-    style VIN fill:#ff6666,color:#fff
-    style GND fill:#333,color:#fff
-    style DIV fill:#ffe08a
-    style SECHO fill:#ffcccc
+    style ESP fill:#1e293b,color:#fff,stroke:#94a3b8,stroke-width:2px
+    style SERVO fill:#fee2e2,stroke:#ef4444,stroke-width:2px
+    style SENSOR fill:#dbeafe,stroke:#3b82f6,stroke-width:2px
+    style LED fill:#fef9c3,stroke:#eab308,stroke-width:2px
 ```
+
+> ⚠️ The **ECHO → divider → GPIO 27** step is not optional — see the divider diagram below.
 
 ## Connection Table
 
