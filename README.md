@@ -212,10 +212,10 @@ ESP32 DevKit
 ───────────────────────────────────────────────
 GPIO 14 (D14)  ─────────────── SG90 Signal (yellow/orange)
 GPIO 26 (D26)  ─────────────── HC-SR04 TRIG
-GPIO 27 (D27)  ◄── [1kΩ+2kΩ divider] ── HC-SR04 ECHO
+GPIO 27 (D27)  ─────────────── HC-SR04 ECHO
 GPIO 32 (D32)  ──── [220Ω] ──── LED Anode (+)
-VIN (=USB 5V)  ──┬─────────────── SG90 VCC (red)
-                └─────────────── HC-SR04 VCC
+VIN (=USB 5V)  ─────────────── SG90 VCC (red)
+3V3            ─────────────── HC-SR04 VCC
 GND            ──┬─────────────── SG90 GND (brown/black)
                 ├─────────────── HC-SR04 GND
                 └─────────────── LED Cathode (-)
@@ -230,7 +230,7 @@ SG90 wire colors:
 
 > **Physical setup tip:** Hot-glue or tape the HC-SR04 to the SG90 servo horn so it rotates with the servo. Keep wires loose enough to allow full 0°–180° sweep.
 
-> **⚠️ ECHO needs a voltage divider.** HC-SR04 ECHO outputs 5V, but ESP32 GPIO is only 3.3V-tolerant. Put a 1kΩ (R1) + 2kΩ (R2) divider on the ECHO line — tap GPIO 27 at the R1/R2 junction. The board's 5V pin is labeled **`VIN`** (USB pass-through), not "5V". Full details and a diagram: [docs/WIRING.md](docs/WIRING.md).
+> **Why the sensor is on `3V3`:** powering HC-SR04 from 3.3V means its ECHO output is also ~3.3V, so it's safe to wire straight to GPIO 27 — **the only resistor you need is the 220Ω for the LED.** If the sensor is unreliable at 3.3V, move VCC to `VIN` (5V) and add a 1kΩ+2kΩ divider on ECHO. The board's 5V pin is labeled **`VIN`**, not "5V". Details: [docs/WIRING.md](docs/WIRING.md).
 
 > **Note:** GPIO pins can be remapped in firmware. The pins above are the default configuration—adjust in `radar.ino` if needed.
 
