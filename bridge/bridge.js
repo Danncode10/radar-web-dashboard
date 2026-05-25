@@ -1,5 +1,5 @@
-const SerialPort = require('serialport').SerialPort;
-const ReadlineParser = require('@serialport/parser-readline').ReadlineParser;
+const SerialPort = require('serialport');
+const ReadlineParser = require('@serialport/parser-readline');
 const WebSocket = require('ws');
 const path = require('path');
 
@@ -15,10 +15,7 @@ const timestamp = () => new Date().toLocaleTimeString();
 console.log(`[${timestamp()}] [WS    ] Server ready → ws://localhost:${WS_PORT}`);
 
 // Serial port setup
-const port = new SerialPort({
-  path: SERIAL_PORT,
-  baudRate: BAUD_RATE,
-});
+const port = new SerialPort(SERIAL_PORT, { baudRate: BAUD_RATE });
 
 const parser = port.pipe(new ReadlineParser({ delimiter: '\n' }));
 

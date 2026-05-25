@@ -8,6 +8,7 @@
     "dev": "nodemon bridge.js"
   },
   "dependencies": {
+    "@serialport/parser-readline": "^9.2.8",
     "serialport": "^9.2.8",
     "ws": "^8.13.0"
   },

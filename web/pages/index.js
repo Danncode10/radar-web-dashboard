@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 
-const MAX_DIST = 200;
 const ALERT_DIST = 50;
 const BLIP_LIFETIME = 5000;
 const SWEEP_TRAIL_DEG = 30;
 
-// Custom hook for radar WebSocket management
 function useRadar() {
   const [status, setStatus] = useState('DISCONNECTED');
   const wsRef = useRef(null);
@@ -16,46 +14,24 @@ function useRadar() {
     const connect = () => {
       setStatus('CONNECTING');
       const ws = new WebSocket('ws://localhost:8080');
-
-      ws.onopen = () => {
-        setStatus('CONNECTED');
-        console.log('WebSocket connected');
-      };
-
+      ws.onopen = () => setStatus('CONNECTED');
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           sweepAngleRef.current = data.angle;
-
-          // Add detection with timestamp
           detectionsRef.current.push({
             angle: data.angle,
             distance: data.distance,
             timestamp: data.timestamp || Date.now(),
           });
-        } catch (err) {
-          console.error('Failed to parse message:', err);
-        }
+        } catch (err) {}
       };
-
-      ws.onerror = (err) => {
-        console.error('WebSocket error:', err);
-        setStatus('ERROR');
-      };
-
-      ws.onclose = () => {
-        setStatus('RECONNECTING');
-        setTimeout(connect, 3000);
-      };
-
+      ws.onerror = () => setStatus('ERROR');
+      ws.onclose = () => { setStatus('RECONNECTING'); setTimeout(connect, 3000); };
       wsRef.current = ws;
     };
-
     connect();
-
-    return () => {
-      if (wsRef.current) wsRef.current.close();
-    };
+    return () => { if (wsRef.current) wsRef.current.close(); };
   }, []);
 
   const sendCommand = (cmd) => {
@@ -67,136 +43,154 @@ function useRadar() {
   return { status, sweepAngleRef, detectionsRef, sendCommand };
 }
 
-// Canvas radar component
-function RadarCanvas({ sweepAngleRef, detectionsRef, alertMode }) {
+function RadarCanvas({ sweepAngleRef, detectionsRef, alertMode, maxDist }) {
   const canvasRef = useRef(null);
+  const containerRef = useRef(null);
+  const alertRef = useRef(alertMode);
+  const maxDistRef = useRef(maxDist);
+
+  // Update every render so animation loop always sees latest values
+  alertRef.current = alertMode;
+  maxDistRef.current = maxDist;
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    let animId;
+
+    const setSize = () => {
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+    };
+    setSize();
+
+    const ro = new ResizeObserver(setSize);
+    ro.observe(container);
 
     const ctx = canvas.getContext('2d');
-    const width = canvas.width;
-    const height = canvas.height;
-    const centerX = width / 2;
-    const centerY = height;
-    const radius = Math.min(width, height) * 0.4;
 
     const render = () => {
-      // Clear with phosphor effect
-      ctx.fillStyle = alertMode ? 'rgba(20, 8, 8, 0.85)' : 'rgba(0, 8, 0, 0.82)';
-      ctx.fillRect(0, 0, width, height);
+      const W = canvas.width;
+      const H = canvas.height;
+      const cx = W / 2;
+      const cy = H;
+      const radius = Math.min(W / 2, H) * 0.92;
+      const alert = alertRef.current;
+      const maxD = maxDistRef.current;
+      const green = alert ? '#ff3333' : '#00ff00';
+      const dimGreen = alert ? '#661111' : '#004400';
 
-      // Draw range rings
-      ctx.strokeStyle = alertMode ? '#661111' : '#00ff00';
-      ctx.lineWidth = 1;
-      ctx.globalAlpha = 0.3;
+      // Background
+      ctx.fillStyle = alert ? 'rgba(20,8,8,0.85)' : 'rgba(0,8,0,0.85)';
+      ctx.fillRect(0, 0, W, H);
 
+      // Range rings + labels
       for (let i = 1; i <= 4; i++) {
         const r = (radius / 4) * i;
+        ctx.globalAlpha = 0.3;
+        ctx.strokeStyle = green;
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(centerX, centerY, r, Math.PI, 0, false);
+        ctx.arc(cx, cy, r, Math.PI, 0, false);
         ctx.stroke();
+
+        // Label on the right side of each ring
+        ctx.globalAlpha = 0.7;
+        ctx.fillStyle = green;
+        ctx.font = '12px "Share Tech Mono", monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(`${Math.round((maxD / 4) * i)}cm`, cx + r * Math.cos((30 * Math.PI) / 180) + 4, cy - r * Math.sin((30 * Math.PI) / 180));
       }
 
-      // Draw angle lines
+      // Angle lines every 30°
       ctx.globalAlpha = 0.2;
+      ctx.strokeStyle = green;
+      ctx.lineWidth = 1;
       for (let deg = 0; deg <= 180; deg += 30) {
         const rad = (deg * Math.PI) / 180;
-        const x = centerX + radius * Math.cos(rad);
-        const y = centerY - radius * Math.sin(rad);
-
         ctx.beginPath();
-        ctx.moveTo(centerX, centerY);
-        ctx.lineTo(x, y);
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + radius * Math.cos(rad), cy - radius * Math.sin(rad));
         ctx.stroke();
       }
 
-      // Draw sweep trail
-      ctx.globalAlpha = 0.15;
-      ctx.fillStyle = alertMode ? '#ff3333' : '#00ff00';
+      // Sweep trail
       const sweepRad = (sweepAngleRef.current * Math.PI) / 180;
-
+      ctx.globalAlpha = 0.15;
+      ctx.fillStyle = green;
       ctx.beginPath();
-      ctx.moveTo(centerX, centerY);
-      ctx.arc(
-        centerX,
-        centerY,
-        radius,
-        sweepRad - (SWEEP_TRAIL_DEG * Math.PI) / 180,
-        sweepRad,
-        false
-      );
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, radius, sweepRad - (SWEEP_TRAIL_DEG * Math.PI) / 180, sweepRad, false);
       ctx.closePath();
       ctx.fill();
 
-      // Draw sweep line
-      ctx.globalAlpha = 0.8;
-      ctx.strokeStyle = alertMode ? '#ff3333' : '#00ff00';
+      // Sweep line
+      ctx.globalAlpha = 0.9;
+      ctx.strokeStyle = green;
       ctx.lineWidth = 2;
-      const endX = centerX + radius * Math.cos(sweepRad);
-      const endY = centerY - radius * Math.sin(sweepRad);
-
       ctx.beginPath();
-      ctx.moveTo(centerX, centerY);
-      ctx.lineTo(endX, endY);
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + radius * Math.cos(sweepRad), cy - radius * Math.sin(sweepRad));
       ctx.stroke();
 
-      // Clean up old detections
+      // Blips
       const now = Date.now();
       detectionsRef.current = detectionsRef.current.filter(
         (d) => now - d.timestamp < BLIP_LIFETIME
       );
-
-      // Draw blips
-      ctx.globalAlpha = 1;
-      detectionsRef.current.forEach((detection) => {
-        const age = now - detection.timestamp;
-        const alpha = Math.max(0.2, 1 - age / BLIP_LIFETIME);
-        ctx.globalAlpha = alpha;
-
-        const deg = detection.angle;
-        const cm = detection.distance;
-        const rad = (deg * Math.PI) / 180;
-        const r = (cm / MAX_DIST) * radius;
-
-        const x = centerX + r * Math.cos(rad);
-        const y = centerY - r * Math.sin(rad);
-
-        ctx.fillStyle = alertMode ? '#ff5555' : '#00ff99';
+      detectionsRef.current.forEach((det) => {
+        if (det.distance <= 0) return;
+        const age = now - det.timestamp;
+        ctx.globalAlpha = Math.max(0.2, 1 - age / BLIP_LIFETIME);
+        const rad = (det.angle * Math.PI) / 180;
+        const beyondRange = det.distance > maxD;
+        const clampedDist = Math.min(det.distance, maxD);
+        const r = (clampedDist / maxD) * radius;
+        // Yellow at outer ring = beyond max range, green/red = within range
+        ctx.fillStyle = beyondRange ? '#ffff00' : (alert ? '#ff5555' : '#00ff99');
         ctx.beginPath();
-        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.arc(cx + r * Math.cos(rad), cy - r * Math.sin(rad), beyondRange ? 4 : 5, 0, Math.PI * 2);
         ctx.fill();
       });
 
-      // Draw base line
+      // Base line
       ctx.globalAlpha = 0.5;
-      ctx.strokeStyle = alertMode ? '#661111' : '#00ff00';
+      ctx.strokeStyle = green;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(centerX - radius, centerY);
-      ctx.lineTo(centerX + radius, centerY);
+      ctx.moveTo(cx - radius, cy);
+      ctx.lineTo(cx + radius, cy);
       ctx.stroke();
 
-      // Draw origin dot
+      // Origin dot
       ctx.globalAlpha = 1;
-      ctx.fillStyle = alertMode ? '#ff3333' : '#00ff00';
+      ctx.fillStyle = green;
       ctx.beginPath();
-      ctx.arc(centerX, centerY, 3, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 4, 0, Math.PI * 2);
       ctx.fill();
 
-      requestAnimationFrame(render);
+      animId = requestAnimationFrame(render);
     };
 
     render();
-  }, [sweepAngleRef, detectionsRef, alertMode]);
 
-  return <canvas ref={canvasRef} width={800} height={500} />;
+    return () => {
+      ro.disconnect();
+      cancelAnimationFrame(animId);
+    };
+  }, []);
+
+  return (
+    <div ref={containerRef} style={{ width: '100%', height: '100%' }}>
+      <canvas ref={canvasRef} style={{ display: 'block' }} />
+    </div>
+  );
 }
 
-// Data panel showing current readings
-function DataPanel({ sweepAngleRef, detectionsRef, status }) {
-  const [display, setDisplay] = useState({ angle: 0, distance: 0 });
+function DataPanel({ sweepAngleRef, detectionsRef, status, maxDist, setMaxDist }) {
+  const [display, setDisplay] = useState({ angle: 0, distance: -1 });
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -205,7 +199,6 @@ function DataPanel({ sweepAngleRef, detectionsRef, status }) {
         setDisplay({ angle: latest.angle, distance: latest.distance });
       }
     }, 100);
-
     return () => clearInterval(interval);
   }, [detectionsRef]);
 
@@ -222,11 +215,28 @@ function DataPanel({ sweepAngleRef, detectionsRef, status }) {
       </div>
       <div className="status-row">
         <span className="label">DISTANCE:</span>
-        <span className="value">{display.distance.toFixed(1)}cm</span>
+        <span className="value">
+          {display.distance > 0 ? `${display.distance.toFixed(1)}cm` : '--'}
+        </span>
       </div>
       <div className="status-row">
         <span className="label">DETECTIONS:</span>
         <span className="value">{detectionsRef.current.length}</span>
+      </div>
+      <div className="status-row">
+        <span className="label">MAX RANGE:</span>
+        <div className="range-control">
+          <input
+            type="number"
+            className="range-input"
+            value={maxDist}
+            min={10}
+            max={400}
+            step={10}
+            onChange={(e) => setMaxDist(Math.max(10, Math.min(400, Number(e.target.value))))}
+          />
+          <span className="value">cm</span>
+        </div>
       </div>
     </div>
   );
@@ -236,17 +246,20 @@ export default function Home() {
   const { status, sweepAngleRef, detectionsRef, sendCommand } = useRadar();
   const [alertMode, setAlertMode] = useState(false);
   const [running, setRunning] = useState(false);
+  const [maxDist, setMaxDist] = useState(30);
 
   const handleStart = () => { sendCommand('start'); setRunning(true); };
   const handleStop = () => { sendCommand('stop'); setRunning(false); };
 
   useEffect(() => {
-    // Check if any recent detection is within alert distance
-    const now = Date.now();
-    const recentAlert = detectionsRef.current.some(
-      (d) => now - d.timestamp < 1000 && d.distance < ALERT_DIST
-    );
-    setAlertMode(recentAlert);
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const recent = detectionsRef.current.filter(
+        (d) => now - d.timestamp < 500 && d.distance > 0
+      );
+      setAlertMode(recent.length >= 3);
+    }, 200);
+    return () => clearInterval(interval);
   }, [detectionsRef]);
 
   return (
@@ -262,6 +275,7 @@ export default function Home() {
             sweepAngleRef={sweepAngleRef}
             detectionsRef={detectionsRef}
             alertMode={alertMode}
+            maxDist={maxDist}
           />
         </div>
 
@@ -270,17 +284,19 @@ export default function Home() {
             sweepAngleRef={sweepAngleRef}
             detectionsRef={detectionsRef}
             status={status}
+            maxDist={maxDist}
+            setMaxDist={setMaxDist}
           />
           <div className="control-panel">
             <button
-              className={`ctrl-btn start ${running ? 'active' : ''}`}
+              className="ctrl-btn start"
               onClick={handleStart}
               disabled={running || status !== 'CONNECTED'}
             >
               ▶ START
             </button>
             <button
-              className={`ctrl-btn stop ${!running ? 'active' : ''}`}
+              className="ctrl-btn stop"
               onClick={handleStop}
               disabled={!running}
             >
