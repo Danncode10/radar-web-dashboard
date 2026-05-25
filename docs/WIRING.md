@@ -15,192 +15,81 @@
 
 **Total Cost:** ₱200-400
 
-## System Block Diagram
+## ⭐ MAIN WIRING DIAGRAM - FOLLOW THIS ONE
 
 ```mermaid
 graph LR
-    USB["🔌 USB Power<br/>5V"]
-    GND["⏚ Ground"]
-    
-    ESP32["📱 ESP32<br/>GPIO 14, 26, 27, 32"]
-    
-    SERVO["⚙️ SG90 Servo<br/>Brown/Red/Orange"]
-    SENSOR["📡 HC-SR04<br/>TRIG/ECHO"]
-    LED["💡 LED + 220Ω<br/>Red/Green"]
-    
-    USB -->|5V| SERVO
-    USB -->|5V| SENSOR
-    GND -->|GND| SERVO
-    GND -->|GND| SENSOR
-    GND -->|GND| LED
-    
-    ESP32 -->|GPIO 14| SERVO
-    ESP32 -->|GPIO 26| SENSOR
-    ESP32 -->|GPIO 27| SENSOR
-    ESP32 -->|GPIO 32| LED
-```
-
-## Complete Wiring Overview
-
-```mermaid
-graph TB
-    subgraph Power["⚡ POWER DISTRIBUTION"]
+    subgraph ESP["📱 ESP32"]
         USB["USB 5V"]
-        GROUND["GND"]
+        GND["GND"]
+        G14["GPIO 14"]
+        G26["GPIO 26"]
+        G27["GPIO 27"]
+        G32["GPIO 32"]
     end
     
-    subgraph ESP["🎛️ ESP32 CONTROL"]
-        GPIO14["GPIO 14<br/>PWM Output"]
-        GPIO26["GPIO 26<br/>Digital Output"]
-        GPIO27["GPIO 27<br/>Digital Input"]
-        GPIO32["GPIO 32<br/>Digital Output"]
+    subgraph PARTS["🔧 COMPONENTS"]
+        SERVO["⚙️ SG90 SERVO<br/>Orange→GPIO14<br/>Red→5V<br/>Brown→GND"]
+        
+        SENSOR["📡 HC-SR04 SENSOR<br/>TRIG→GPIO26<br/>ECHO→GPIO27<br/>VCC→5V<br/>GND→GND"]
+        
+        LEDC["💡 LED CIRCUIT<br/>GPIO32→Resistor<br/>→LED(+long)<br/>LED(-short)→GND"]
     end
     
-    subgraph Devices["🔧 DEVICES"]
-        SRV["SG90 Servo<br/>Red→5V<br/>Brown→GND<br/>Orange→GPIO14"]
-        SNS["HC-SR04 Sensor<br/>VCC→5V<br/>GND→GND<br/>TRIG→GPIO26<br/>ECHO→GPIO27"]
-        LEDR["220Ω Resistor"]
-        LEDD["LED Light<br/>+→Resistor<br/>-→GND"]
-    end
+    USB -->|RED WIRE<br/>5V| SERVO
+    USB -->|RED WIRE<br/>5V| SENSOR
     
-    USB -->|5V| SRV
-    USB -->|5V| SNS
-    GROUND -->|GND| SRV
-    GROUND -->|GND| SNS
-    GROUND -->|GND| LEDD
+    GND -->|BLACK WIRE<br/>GND| SERVO
+    GND -->|BLACK WIRE<br/>GND| SENSOR
+    GND -->|BLACK WIRE<br/>GND| LEDC
     
-    GPIO14 -->|Signal| SRV
-    GPIO26 -->|Trigger| SNS
-    GPIO27 -->|Echo| SNS
-    GPIO32 -->|Output| LEDR
-    LEDR -->|Current Limited| LEDD
+    G14 -->|ORANGE WIRE<br/>Signal| SERVO
+    G26 -->|YELLOW WIRE<br/>Trigger| SENSOR
+    G27 -->|WHITE WIRE<br/>Echo| SENSOR
+    G32 -->|WIRE to 220Ω| LEDC
+    
+    style USB fill:#ff6666,color:#fff
+    style GND fill:#333,color:#fff
+    style SERVO fill:#ffcccc
+    style SENSOR fill:#ccccff
+    style LEDC fill:#ffffcc
 ```
 
-## Quick Connection Reference
+**That's it! Just follow the arrows above. Read the labels on each wire.**
 
-```mermaid
-graph LR
-    ESP32["ESP32"]
-    
-    ESP32 -->|GPIO 14| SERVO["SG90 Servo<br/>(Orange Wire)"]
-    ESP32 -->|GPIO 26| TRIG["HC-SR04 TRIG<br/>(Yellow Wire)"]
-    ESP32 -->|GPIO 27| ECHO["HC-SR04 ECHO<br/>(White Wire)"]
-    ESP32 -->|GPIO 32| RES["220Ω Resistor"]
-    
-    RES -->|to LED| LED["💡 LED<br/>(Long Leg)"]
-    
-    style SERVO fill:#ff9999
-    style TRIG fill:#ffff99
-    style ECHO fill:#99ff99
-    style LED fill:#ff6666
-    style RES fill:#cc6600
-```
+## Pin Reference (If You Get Confused)
 
-## Component Pinouts
+Just use the main diagram above! But here's a quick cheat sheet:
 
-### ESP32 DevKit Pins (What You Need to Use)
+| ESP32 Pin | Wire Color | Connect To | Device |
+|-----------|-----------|-----------|--------|
+| **5V** | Red | VCC | Servo + Sensor |
+| **GND** | Black | GND | Servo + Sensor + LED |
+| **GPIO 14** | Orange | Signal | SG90 Servo |
+| **GPIO 26** | Yellow | TRIG | HC-SR04 Sensor |
+| **GPIO 27** | White | ECHO | HC-SR04 Sensor |
+| **GPIO 32** | Any | Resistor→LED(+) | LED Alert |
 
-```mermaid
-graph TB
-    subgraph ESP32["ESP32 DevKit - Pin Functions"]
-        GND["GND - Ground Rail"]
-        V5["5V - Power Rail"]
-        GPIO14["GPIO 14 - Servo Signal"]
-        GPIO26["GPIO 26 - Sensor TRIG"]
-        GPIO27["GPIO 27 - Sensor ECHO"]
-        GPIO32["GPIO 32 - LED Output"]
-    end
-    
-    GND -->|Connect To| SERVO_GND["Servo Brown Wire"]
-    GND -->|Connect To| SENSOR_GND["Sensor GND"]
-    GND -->|Connect To| LED_NEG["LED Cathode"]
-    
-    V5 -->|Connect To| SERVO_VCC["Servo Red Wire"]
-    V5 -->|Connect To| SENSOR_VCC["Sensor VCC"]
-    
-    GPIO14 -->|Connect To| SERVO_SIG["Servo Orange Wire"]
-    GPIO26 -->|Connect To| SENSOR_TRIG["Sensor TRIG Pin"]
-    GPIO27 -->|Connect To| SENSOR_ECHO["Sensor ECHO Pin"]
-    GPIO32 -->|→ 220Ω → LED| LED_POS["LED Anode"]
-```
+**HC-SR04 Sensor (left to right):** VCC, TRIG, ECHO, GND  
+**SG90 Servo:** Brown=GND, Red=5V, Orange=Signal  
+**LED:** Long leg=Anode(+), Short leg=Cathode(-)
 
-### HC-SR04 Ultrasonic Sensor
+## Assembly Instructions
 
-```mermaid
-graph LR
-    HC["HC-SR04 Module<br/>(4 pins, left to right)"]
-    
-    HC --> VCC["🔴 VCC"]
-    HC --> TRIG["🟡 TRIG"]
-    HC --> ECHO["⚪ ECHO"]
-    HC --> GND["⚫ GND"]
-    
-    VCC -->|5V| ESP["→ ESP32 5V Rail"]
-    TRIG -->|GPIO 26| GPIO26["→ GPIO 26"]
-    ECHO -->|GPIO 27| GPIO27["→ GPIO 27"]
-    GND -->|Ground| GNDL["→ ESP32 GND Rail"]
-```
+1. **Glue sensor to servo**
+   - Hot-glue HC-SR04 to the servo horn (keep wires loose)
 
-### SG90 Servo Motor
+2. **Follow the main diagram above**
+   - Red wires → 5V
+   - Black wires → GND
+   - Colored wires → GPIO pins (see labels)
 
-```mermaid
-graph LR
-    SERVO["SG90 Servo<br/>(3 wires)"]
-    
-    SERVO --> BROWN["🟤 Brown"]
-    SERVO --> RED["🔴 Red"]
-    SERVO --> ORANGE["🟠 Orange"]
-    
-    BROWN -->|GND| GND_RAIL["→ GND Rail"]
-    RED -->|5V| V5_RAIL["→ 5V Rail"]
-    ORANGE -->|GPIO 14| GPIO14["→ GPIO 14"]
-```
-
-### LED Alert Light
-
-```mermaid
-graph LR
-    GPIO32["GPIO 32"]
-    RES["220Ω<br/>Resistor"]
-    LED["💡 LED"]
-    GND["GND"]
-    
-    GPIO32 -->|Signal| RES
-    RES -->|Current Limited| LED
-    LED -->|Long Leg| LED_LONG["Anode (+)"]
-    LED -->|Short Leg| LED_SHORT["Cathode (-)"]
-    LED_SHORT -->|connects to| GND
-    
-    style LED fill:#ff6666
-    style RES fill:#cc6600
-    style LED_LONG fill:#ff9999
-    style LED_SHORT fill:#333333
-```
-
-## Step-by-Step Wiring Checklist
-
-```mermaid
-graph TD
-    STEP1["✅ STEP 1<br/>Set Up Power Rails"] --> STEP2["✅ STEP 2<br/>Mount Sensor on Servo"]
-    STEP2 --> STEP3["✅ STEP 3<br/>Connect Servo"]
-    STEP3 --> STEP4["✅ STEP 4<br/>Connect Sensor"]
-    STEP4 --> STEP5["✅ STEP 5<br/>Connect LED"]
-    STEP5 --> VERIFY["✅ VERIFY<br/>All Connections"]
-    
-    STEP1 --> S1A["Breadboard Positive → 5V<br/>Breadboard Negative → GND"]
-    STEP2 --> S2A["Hot-glue HC-SR04<br/>to Servo Horn<br/>(Keep wires loose)"]
-    STEP3 --> S3A["Brown → GND<br/>Red → 5V<br/>Orange → GPIO 14"]
-    STEP4 --> S4A["VCC → 5V<br/>GND → GND<br/>TRIG → GPIO 26<br/>ECHO → GPIO 27"]
-    STEP5 --> S5A["GPIO 32 → 220Ω →<br/>LED(+) Anode<br/>LED(-) → GND"]
-    VERIFY --> V1["No floating wires<br/>All GND connected<br/>No shorts between signals"]
-    
-    style STEP1 fill:#99ff99
-    style STEP2 fill:#99ff99
-    style STEP3 fill:#99ff99
-    style STEP4 fill:#99ff99
-    style STEP5 fill:#99ff99
-    style VERIFY fill:#ffff99
-```
+3. **Verify before plugging in**
+   - No wires touching each other
+   - All GND wires connected together
+   - 220Ω resistor in series with LED
+   
+That's it!
 
 ## Why 220Ω Resistor?
 
