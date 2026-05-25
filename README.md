@@ -271,15 +271,17 @@ radar-project/
 - **ESP32 Setup:** Install ESP32 board definition by adding this URL to Arduino IDE preferences:
   - `https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json`
   - Then go to **Tools → Board → Boards Manager** and install **esp32** by Espressif Systems
+- **Library:** Go to **Tools → Manage Libraries**, search **ESP32Servo**, and install it (used for smooth servo motion).
 
 ### Step 1 — Flash ESP32
 
 1. Open `arduino/radar.ino` in Arduino IDE
-2. Select **Tools → Board → esp32 → ESP32 Dev Module** (or your specific ESP32 variant)
-3. Select **Tools → Upload Speed → 921600** (faster than Arduino Uno)
-4. Select **Tools → Port** → choose your ESP32 port (e.g. `/dev/cu.usbserial-14101` or `/dev/cu.wchusbserial1410`)
-5. Click **Upload**
-6. Open Serial Monitor at **115200 baud** — you should see `90,35.40` style output
+2. Install the **ESP32Servo** library if you haven't (Tools → Manage Libraries)
+3. Select **Tools → Board → esp32 → ESP32 Dev Module** (or your specific ESP32 variant)
+4. Select **Tools → Upload Speed → 921600** (faster than Arduino Uno)
+5. Select **Tools → Port** → choose your ESP32 port (e.g. `/dev/cu.usbserial-14101` or `/dev/cu.wchusbserial1410`)
+6. Click **Upload**
+7. Open Serial Monitor at **115200 baud** — you should see `90,35.40` style output
 
 > **Connection Issues?** Some ESP32 boards need the CH340 or CP2102 driver. Download from:
 > - [CH340 Driver](https://github.com/WCHSoftware/ch340-driver)

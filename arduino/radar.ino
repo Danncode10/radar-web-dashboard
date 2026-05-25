@@ -1,5 +1,8 @@
 // RADAR SYSTEM - ESP32 Firmware
-// Servo sweep with HC-SR04 ultrasonic sensor and LED alert
+// Servo sweep with HC-SR04 ultrasonic sensor and LED alert.
+// Requires the ESP32Servo library (Tools > Manage Libraries > "ESP32Servo").
+
+#include <ESP32Servo.h>
 
 const int SERVO_PIN = 14;
 const int TRIG_PIN = 26;
@@ -9,6 +12,8 @@ const int LED_PIN = 32;
 const int SWEEP_STEP = 2;        // degrees per step
 const int STEP_DELAY_MS = 30;    // ms per step
 const float ALERT_DISTANCE = 50.0; // cm
+
+Servo servo;
 
 volatile long echo_start = 0;
 volatile long echo_duration = 0;
@@ -27,7 +32,6 @@ void IRAM_ATTR echoInterrupt() {
 void setup() {
   Serial.begin(115200);
 
-  pinMode(SERVO_PIN, OUTPUT);
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
   pinMode(LED_PIN, OUTPUT);
@@ -37,8 +41,9 @@ void setup() {
 
   attachInterrupt(digitalPinToInterrupt(ECHO_PIN), echoInterrupt, CHANGE);
 
-  // Initialize servo to 90 degrees
-  servoWrite(90);
+  servo.setPeriodHertz(50);            // standard 50Hz servo
+  servo.attach(SERVO_PIN, 500, 2500);  // SG90 pulse range (us)
+  servo.write(90);                     // center on startup
   delay(500);
 
   Serial.println("READY");
@@ -57,7 +62,7 @@ void loop() {
   }
 
   // Move servo
-  servoWrite(currentAngle);
+  servo.write(currentAngle);
   delay(STEP_DELAY_MS);
 
   // Measure distance
@@ -74,17 +79,6 @@ void loop() {
   Serial.print(currentAngle);
   Serial.print(",");
   Serial.println(distance, 2);
-}
-
-void servoWrite(int angle) {
-  // Convert angle (0-180) to pulse width (500-2500 microseconds)
-  int pulseWidth = 500 + (angle * 2000 / 180);
-
-  // Send PWM pulse
-  digitalWrite(SERVO_PIN, HIGH);
-  delayMicroseconds(pulseWidth);
-  digitalWrite(SERVO_PIN, LOW);
-  delayMicroseconds(20000 - pulseWidth);
 }
 
 float measureDistance() {

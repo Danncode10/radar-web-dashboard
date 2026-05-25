@@ -10,7 +10,8 @@ Compiles `arduino/radar.ino` and uploads it to a connected ESP32 using `arduino-
 
 ## Board facts for this project
 - **FQBN:** `esp32:esp32:esp32`
-- **Sketch:** `arduino/radar.ino` (uses only built-in functions — no extra libraries)
+- **Sketch:** `arduino/radar.ino`
+- **Library:** `ESP32Servo` (used for smooth servo motion)
 - **Serial baud:** `115200`
 - **Expected output:** `READY`, then lines like `90,35.40`
 
@@ -28,6 +29,7 @@ arduino-cli config add board_manager.additional_urls \
   https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
 arduino-cli core update-index
 arduino-cli core install esp32:esp32
+arduino-cli lib install ESP32Servo
 ```
 
 ## Step 3 — Find the serial port
@@ -66,8 +68,12 @@ You should see `READY` then a stream of `angle,distance` lines. Press `Ctrl+C` t
 **Stop the monitor before starting the bridge** — only one program can hold the port.
 
 ## Notes
-- The firmware does its own servo PWM and echo timing, so no libraries are required.
-- If you later switch to the `ESP32Servo` library, install it with
-  `arduino-cli lib install ESP32Servo` and re-compile.
+- The firmware uses the `ESP32Servo` library for smooth servo motion — install it once
+  with `arduino-cli lib install ESP32Servo` (Step 2). In the Arduino IDE, use
+  Tools > Manage Libraries and search "ESP32Servo".
+- Echo timing is done with an interrupt, no library needed for the sensor.
 - Pin mapping lives at the top of `arduino/radar.ino` (servo 14, TRIG 26, ECHO 27, LED 32).
   If you rewire, update those constants and re-flash.
+- The test sketches in `arduino/servo_test`, `arduino/distance_test`, `arduino/led_test`
+  compile the same way — point compile/upload at the folder, e.g.
+  `arduino-cli compile --fqbn esp32:esp32:esp32 arduino/servo_test`.
