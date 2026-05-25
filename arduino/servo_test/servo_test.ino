@@ -2,7 +2,7 @@
 // Use this to find the physical endpoints of your radar sweep.
 // Signal wire (yellow/orange) on GPIO 14 (ESP32) or pin 9 (Arduino Uno). Baud: 115200.
 
-#include <Servo.h>
+#include <ESP32Servo.h>
 
 const int SERVO_PIN = 14;
 

@@ -3,7 +3,7 @@
 // ESP32: install ESP32Servo library (Tools > Manage Libraries > "ESP32Servo").
 // Arduino: uses built-in Servo library, no extra install needed.
 
-#include <Servo.h>
+#include <ESP32Servo.h>
 
 const int SERVO_PIN = 14;
 const int TRIG_PIN = 26;
@@ -61,7 +61,6 @@ void loop() {
     direction = 1;
   }
 
-  // Move servo
   servo.write(currentAngle);
   delay(STEP_DELAY_MS);
 
