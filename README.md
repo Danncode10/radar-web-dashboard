@@ -221,8 +221,8 @@ GND            ──┬─────────────── SG90 GND (
                 └─────────────── LED Cathode (-)
 ───────────────────────────────────────────────
 
-HC-SR04 pinout (left to right facing the "eyes"):
-  VCC | TRIG | ECHO | GND
+HC-SR04: connect by LABEL, not position (pin order varies by module).
+  Labels are some order of: VCC | TRIG | ECHO | GND
 
 SG90 wire colors:
   Brown = GND | Red = VCC | Orange = Signal

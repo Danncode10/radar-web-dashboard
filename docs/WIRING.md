@@ -72,7 +72,9 @@ graph LR
 | `GPIO 27` | — | **ECHO via divider** | see below — do NOT connect directly |
 | `GPIO 32` | — | 220Ω → LED long leg (+) | LED short leg (−) → GND |
 
-**HC-SR04 pin order (left→right, facing the eyes):** `VCC · TRIG · ECHO · GND`
+**HC-SR04:** match by the **printed label**, not position — pin order differs between
+modules. Yours may read `GND · ECHO · TRIG · VCC`; others read `VCC · TRIG · ECHO · GND`.
+Just connect each labeled pin: `VCC→VIN`, `TRIG→GPIO 26`, `ECHO→divider→GPIO 27`, `GND→GND`.
 **SG90 wires:** Brown = GND, Red = 5V, Orange = Signal
 
 ## The ECHO Voltage Divider (important)
