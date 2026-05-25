@@ -62,6 +62,19 @@ port.on('error', (err) => {
 wss.on('connection', (ws) => {
   console.log(`[${timestamp()}] [WS    ] Client connected (total: ${wss.clients.size})`);
 
+  ws.on('message', (msg) => {
+    try {
+      const data = JSON.parse(msg);
+      if (data.command === 'start') {
+        port.write('START\n');
+        console.log(`[${timestamp()}] [CMD   ] START sent to ESP32`);
+      } else if (data.command === 'stop') {
+        port.write('STOP\n');
+        console.log(`[${timestamp()}] [CMD   ] STOP sent to ESP32`);
+      }
+    } catch (e) {}
+  });
+
   ws.on('close', () => {
     console.log(`[${timestamp()}] [WS    ] Client disconnected (total: ${wss.clients.size - 1})`);
   });

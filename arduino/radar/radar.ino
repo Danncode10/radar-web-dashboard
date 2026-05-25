@@ -20,7 +20,8 @@ volatile long echo_start = 0;
 volatile long echo_duration = 0;
 
 int currentAngle = 0;
-int direction = 1; // 1 for forward, -1 for backward
+int direction = 1;
+bool running = false;
 
 void IRAM_ATTR echoInterrupt() {
   if (digitalRead(ECHO_PIN) == HIGH) {
@@ -50,6 +51,16 @@ void setup() {
 }
 
 void loop() {
+  // Check for START/STOP commands from bridge
+  if (Serial.available()) {
+    String cmd = Serial.readStringUntil('\n');
+    cmd.trim();
+    if (cmd == "START") running = true;
+    else if (cmd == "STOP") { running = false; digitalWrite(LED_PIN, LOW); }
+  }
+
+  if (!running) { delay(50); return; }
+
   // Sweep from 0 to 180 and back
   currentAngle += (SWEEP_STEP * direction);
 

@@ -58,7 +58,13 @@ function useRadar() {
     };
   }, []);
 
-  return { status, sweepAngleRef, detectionsRef };
+  const sendCommand = (cmd) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ command: cmd }));
+    }
+  };
+
+  return { status, sweepAngleRef, detectionsRef, sendCommand };
 }
 
 // Canvas radar component
@@ -227,8 +233,12 @@ function DataPanel({ sweepAngleRef, detectionsRef, status }) {
 }
 
 export default function Home() {
-  const { status, sweepAngleRef, detectionsRef } = useRadar();
+  const { status, sweepAngleRef, detectionsRef, sendCommand } = useRadar();
   const [alertMode, setAlertMode] = useState(false);
+  const [running, setRunning] = useState(false);
+
+  const handleStart = () => { sendCommand('start'); setRunning(true); };
+  const handleStop = () => { sendCommand('stop'); setRunning(false); };
 
   useEffect(() => {
     // Check if any recent detection is within alert distance
@@ -261,6 +271,22 @@ export default function Home() {
             detectionsRef={detectionsRef}
             status={status}
           />
+          <div className="control-panel">
+            <button
+              className={`ctrl-btn start ${running ? 'active' : ''}`}
+              onClick={handleStart}
+              disabled={running || status !== 'CONNECTED'}
+            >
+              ▶ START
+            </button>
+            <button
+              className={`ctrl-btn stop ${!running ? 'active' : ''}`}
+              onClick={handleStop}
+              disabled={!running}
+            >
+              ■ STOP
+            </button>
+          </div>
         </div>
       </div>
     </div>
