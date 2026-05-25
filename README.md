@@ -210,7 +210,7 @@ This means if the bridge restarts (or the Arduino is replugged), the browser aut
 ```
 ESP32 DevKit
 ───────────────────────────────────────────────
-GPIO 14 (D14)  ─────────────── SG90 Signal (orange)
+GPIO 14 (D14)  ─────────────── SG90 Signal (yellow/orange)
 GPIO 26 (D26)  ─────────────── HC-SR04 TRIG
 GPIO 27 (D27)  ◄── [1kΩ+2kΩ divider] ── HC-SR04 ECHO
 GPIO 32 (D32)  ──── [220Ω] ──── LED Anode (+)
@@ -225,7 +225,7 @@ HC-SR04: connect by LABEL, not position (pin order varies by module).
   Labels are some order of: VCC | TRIG | ECHO | GND
 
 SG90 wire colors:
-  Brown = GND | Red = VCC | Orange = Signal
+  Brown = GND | Red = VCC | Yellow/Orange = Signal (third wire)
 ```
 
 > **Physical setup tip:** Hot-glue or tape the HC-SR04 to the SG90 servo horn so it rotates with the servo. Keep wires loose enough to allow full 0°–180° sweep.

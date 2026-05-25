@@ -34,19 +34,24 @@ graph LR
         G32["GPIO 32"]
     end
 
-    SERVO["SG90 Servo"]
-    SVCC["HC-SR04 VCC"]
-    STRIG["HC-SR04 TRIG"]
-    SECHO["HC-SR04 ECHO"]
-    SGND["HC-SR04 GND"]
+    SERVO["SG90 Servo<br/>(brown / red / yellow)"]
+
+    subgraph HC["HC-SR04 (your pin order)"]
+        direction TB
+        SGND["1 · GND"]
+        SECHO["2 · ECHO"]
+        STRIG["3 · TRIG"]
+        SVCC["4 · VCC"]
+    end
+
     DIV(["Voltage divider<br/>R1 1kΩ + R2 2kΩ"])
     RLED["220Ω → LED(+)"]
 
     VIN -->|red| SERVO
-    VIN -->|red| SVCC
-    G14 -->|orange = signal| SERVO
     GND -->|brown| SERVO
+    G14 -->|yellow = signal| SERVO
 
+    VIN -->|red| SVCC
     G26 -->|trigger| STRIG
     SECHO -->|5V out| DIV
     DIV -->|~3.3V| G27
@@ -67,15 +72,17 @@ graph LR
 |---|---|---|---|
 | `VIN` | red | SG90 red **+** HC-SR04 VCC | 5V from USB |
 | `GND` | black | SG90 brown **+** HC-SR04 GND **+** LED short leg | common ground |
-| `GPIO 14` | orange | SG90 signal | 3.3V signal, SG90 accepts it |
+| `GPIO 14` | yellow | SG90 signal | 3.3V signal, SG90 accepts it |
 | `GPIO 26` | — | HC-SR04 TRIG | 3.3V trigger is fine |
 | `GPIO 27` | — | **ECHO via divider** | see below — do NOT connect directly |
 | `GPIO 32` | — | 220Ω → LED long leg (+) | LED short leg (−) → GND |
 
-**HC-SR04:** match by the **printed label**, not position — pin order differs between
-modules. Yours may read `GND · ECHO · TRIG · VCC`; others read `VCC · TRIG · ECHO · GND`.
-Just connect each labeled pin: `VCC→VIN`, `TRIG→GPIO 26`, `ECHO→divider→GPIO 27`, `GND→GND`.
-**SG90 wires:** Brown = GND, Red = 5V, Orange = Signal
+**HC-SR04 (your board, pins 1→4):** `GND · ECHO · TRIG · VCC`. Connect by label, not
+position — some other modules use `VCC · TRIG · ECHO · GND`, so always read the silkscreen.
+Either way: `VCC→VIN`, `TRIG→GPIO 26`, `ECHO→divider→GPIO 27`, `GND→GND`.
+**SG90 servo (your board, no labels — 3 female wires):** Brown = GND, Red = 5V (VIN),
+Yellow = Signal (→ GPIO 14). On some servos the signal wire is orange instead of yellow —
+it's always the third wire next to red.
 
 ## The ECHO Voltage Divider (important)
 
@@ -123,7 +130,7 @@ GPIO outputs 3.3V. LED drops ~2V, so the resistor sets current to about (3.3−2
 | Distance always 0 or garbage | ECHO not divided / miswired | Check R1/R2 junction goes to GPIO 27 |
 | No serial output at all | Firmware not uploaded / wrong port | Re-flash, check `ls /dev/cu.*` |
 | LED never lights | Polarity or missing resistor | Long leg → resistor side, short leg → GND |
-| Servo doesn't move | Signal not on GPIO 14, or no 5V on VIN | Check orange→GPIO14, red→VIN |
+| Servo doesn't move | Signal not on GPIO 14, or no 5V on VIN | Check yellow→GPIO14, red→VIN |
 | Readings noisy/jumpy | Sensor too close / loose mount | Keep >5cm, secure the sensor |
 
 Now see `QUICKSTART.md` to run the UI.
