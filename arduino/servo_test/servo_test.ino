@@ -2,11 +2,7 @@
 // Use this to find the physical endpoints of your radar sweep.
 // Signal wire (yellow/orange) on GPIO 14 (ESP32) or pin 9 (Arduino Uno). Baud: 115200.
 
-#ifdef ESP32
-  #include <ESP32Servo.h>
-#else
-  #include <Servo.h>
-#endif
+#include <Servo.h>
 
 const int SERVO_PIN = 14;
 
@@ -14,9 +10,6 @@ Servo servo;
 
 void setup() {
   Serial.begin(115200);
-#ifdef ESP32
-  servo.setPeriodHertz(50);
-#endif
   servo.attach(SERVO_PIN, 500, 2500);
   servo.write(90);
   Serial.println("Servo angle finder ready.");

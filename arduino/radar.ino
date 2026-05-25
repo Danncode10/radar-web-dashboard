@@ -3,11 +3,7 @@
 // ESP32: install ESP32Servo library (Tools > Manage Libraries > "ESP32Servo").
 // Arduino: uses built-in Servo library, no extra install needed.
 
-#ifdef ESP32
-  #include <ESP32Servo.h>
-#else
-  #include <Servo.h>
-#endif
+#include <Servo.h>
 
 const int SERVO_PIN = 14;
 const int TRIG_PIN = 26;
@@ -46,9 +42,6 @@ void setup() {
 
   attachInterrupt(digitalPinToInterrupt(ECHO_PIN), echoInterrupt, CHANGE);
 
-#ifdef ESP32
-  servo.setPeriodHertz(50);
-#endif
   servo.attach(SERVO_PIN, 500, 2500);  // SG90 pulse range (us)
   servo.write(90);                     // center on startup
   delay(500);
