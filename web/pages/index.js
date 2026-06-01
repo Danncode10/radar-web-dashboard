@@ -5,32 +5,52 @@ const SWEEP_TRAIL_DEG = 30;
 
 function useRadar() {
   const [status, setStatus] = useState('DISCONNECTED');
+  const [esp32Ready, setEsp32Ready] = useState(false);
   const wsRef = useRef(null);
   const sweepAngleRef = useRef(0);
   const detectionsRef = useRef([]);
 
   useEffect(() => {
+    let reconnectTimer = null;
+
     const connect = () => {
       setStatus('CONNECTING');
       const ws = new WebSocket('ws://localhost:8080');
       ws.onopen = () => setStatus('CONNECTED');
       ws.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data);
-          sweepAngleRef.current = data.angle;
-          detectionsRef.current.push({
-            angle: data.angle,
-            distance: data.distance,
-            timestamp: data.timestamp || Date.now(),
-          });
+          const msg = JSON.parse(event.data);
+
+          // Handle status messages from bridge
+          if (msg.type === 'status') {
+            setEsp32Ready(msg.esp32Ready);
+            return;
+          }
+
+          // Handle sensor data
+          if (msg.type === 'data') {
+            sweepAngleRef.current = msg.angle;
+            detectionsRef.current.push({
+              angle: msg.angle,
+              distance: msg.distance,
+              timestamp: msg.timestamp || Date.now(),
+            });
+          }
         } catch (err) {}
       };
       ws.onerror = () => setStatus('ERROR');
-      ws.onclose = () => { setStatus('RECONNECTING'); setTimeout(connect, 3000); };
+      ws.onclose = () => {
+        setStatus('RECONNECTING');
+        setEsp32Ready(false);
+        reconnectTimer = setTimeout(connect, 3000);
+      };
       wsRef.current = ws;
     };
     connect();
-    return () => { if (wsRef.current) wsRef.current.close(); };
+    return () => {
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (wsRef.current) wsRef.current.close();
+    };
   }, []);
 
   const sendCommand = (cmd, value) => {
@@ -39,7 +59,7 @@ function useRadar() {
     }
   };
 
-  return { status, sweepAngleRef, detectionsRef, sendCommand };
+  return { status, esp32Ready, sweepAngleRef, detectionsRef, sendCommand };
 }
 
 function RadarCanvas({ sweepAngleRef, detectionsRef, alertMode, maxDist }) {
@@ -185,7 +205,7 @@ function RadarCanvas({ sweepAngleRef, detectionsRef, alertMode, maxDist }) {
   );
 }
 
-function DataPanel({ sweepAngleRef, detectionsRef, status, maxDist, setMaxDist }) {
+function DataPanel({ sweepAngleRef, detectionsRef, status, esp32Ready, maxDist, setMaxDist }) {
   const [display, setDisplay] = useState({ angle: 0, distance: -1 });
 
   useEffect(() => {
@@ -204,6 +224,12 @@ function DataPanel({ sweepAngleRef, detectionsRef, status, maxDist, setMaxDist }
       <div className="status-row">
         <span className="label">CONNECTION:</span>
         <span className={`value ${status.toLowerCase()}`}>{status}</span>
+      </div>
+      <div className="status-row">
+        <span className="label">ESP32:</span>
+        <span className={`value ${esp32Ready ? 'connected' : 'disconnected'}`}>
+          {esp32Ready ? 'READY' : 'NOT READY'}
+        </span>
       </div>
       <div className="status-row">
         <span className="label">SWEEP ANGLE:</span>
@@ -239,7 +265,7 @@ function DataPanel({ sweepAngleRef, detectionsRef, status, maxDist, setMaxDist }
 }
 
 export default function Home() {
-  const { status, sweepAngleRef, detectionsRef, sendCommand } = useRadar();
+  const { status, esp32Ready, sweepAngleRef, detectionsRef, sendCommand } = useRadar();
   const [alertMode, setAlertMode] = useState(false);
   const [running, setRunning] = useState(false);
   const [maxDist, setMaxDist] = useState(30);
@@ -286,6 +312,7 @@ export default function Home() {
             sweepAngleRef={sweepAngleRef}
             detectionsRef={detectionsRef}
             status={status}
+            esp32Ready={esp32Ready}
             maxDist={maxDist}
             setMaxDist={setMaxDist}
           />
@@ -293,7 +320,7 @@ export default function Home() {
             <button
               className="ctrl-btn start"
               onClick={handleStart}
-              disabled={running || status !== 'CONNECTED'}
+              disabled={running || status !== 'CONNECTED' || !esp32Ready}
             >
               ▶ START
             </button>

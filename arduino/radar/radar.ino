@@ -19,9 +19,16 @@ Servo servo;
 int currentAngle = 0;
 int direction = 1;
 bool running = false;
+unsigned long lastReadyPing = 0;
 
 void setup() {
   Serial.begin(115200);
+
+  // Wait for serial to stabilize after DTR reset
+  delay(1000);
+
+  // Flush any garbage in the serial buffer from the reset
+  while (Serial.available()) Serial.read();
 
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
@@ -31,10 +38,13 @@ void setup() {
   digitalWrite(LED_PIN, LOW);
 
   servo.attach(SERVO_PIN, 500, 2500);  // SG90 pulse range (us)
-  servo.write(90);                     // center on startup
+  servo.write(0);                      // start at sweep origin
+  currentAngle = 0;
+  direction = 1;
   delay(500);
 
   Serial.println("READY");
+  lastReadyPing = millis();
 }
 
 void loop() {
@@ -42,12 +52,30 @@ void loop() {
   if (Serial.available()) {
     String cmd = Serial.readStringUntil('\n');
     cmd.trim();
-    if (cmd == "START") running = true;
-    else if (cmd == "STOP") { running = false; digitalWrite(LED_PIN, LOW); }
-    else if (cmd.startsWith("RANGE:")) { alertDistance = cmd.substring(6).toFloat(); }
+    if (cmd == "START") {
+      running = true;
+    }
+    else if (cmd == "STOP") {
+      running = false;
+      digitalWrite(LED_PIN, LOW);
+    }
+    else if (cmd == "PING") {
+      Serial.println("READY");
+    }
+    else if (cmd.startsWith("RANGE:")) {
+      alertDistance = cmd.substring(6).toFloat();
+    }
   }
 
-  if (!running) { delay(50); return; }
+  if (!running) {
+    // Periodically send READY so bridge knows we're alive
+    if (millis() - lastReadyPing > 2000) {
+      Serial.println("READY");
+      lastReadyPing = millis();
+    }
+    delay(50);
+    return;
+  }
 
   // Sweep from 0 to 180 and back
   currentAngle += (SWEEP_STEP * direction);
