@@ -10,26 +10,15 @@ const int TRIG_PIN = 26;
 const int ECHO_PIN = 27;
 const int LED_PIN = 32;
 
-const int SWEEP_STEP = 2;        // degrees per step
-const int STEP_DELAY_MS = 30;    // ms per step
-const float ALERT_DISTANCE = 50.0; // cm
+const int SWEEP_STEP = 3;        // degrees per step
+const int STEP_DELAY_MS = 15;    // ms per step
+float alertDistance = 30.0; // cm — updated via RANGE: command from UI
 
 Servo servo;
-
-volatile long echo_start = 0;
-volatile long echo_duration = 0;
 
 int currentAngle = 0;
 int direction = 1;
 bool running = false;
-
-void IRAM_ATTR echoInterrupt() {
-  if (digitalRead(ECHO_PIN) == HIGH) {
-    echo_start = micros();
-  } else {
-    echo_duration = micros() - echo_start;
-  }
-}
 
 void setup() {
   Serial.begin(115200);
@@ -40,8 +29,6 @@ void setup() {
 
   digitalWrite(TRIG_PIN, LOW);
   digitalWrite(LED_PIN, LOW);
-
-  attachInterrupt(digitalPinToInterrupt(ECHO_PIN), echoInterrupt, CHANGE);
 
   servo.attach(SERVO_PIN, 500, 2500);  // SG90 pulse range (us)
   servo.write(90);                     // center on startup
@@ -57,6 +44,7 @@ void loop() {
     cmd.trim();
     if (cmd == "START") running = true;
     else if (cmd == "STOP") { running = false; digitalWrite(LED_PIN, LOW); }
+    else if (cmd.startsWith("RANGE:")) { alertDistance = cmd.substring(6).toFloat(); }
   }
 
   if (!running) { delay(50); return; }
@@ -79,7 +67,7 @@ void loop() {
   float distance = measureDistance();
 
   // Alert LED
-  if (distance < ALERT_DISTANCE && distance > 0) {
+  if (distance > 0 && distance <= alertDistance) {
     digitalWrite(LED_PIN, HIGH);
   } else {
     digitalWrite(LED_PIN, LOW);
@@ -92,26 +80,16 @@ void loop() {
 }
 
 float measureDistance() {
-  // Trigger HC-SR04
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
   digitalWrite(TRIG_PIN, HIGH);
   delayMicroseconds(10);
   digitalWrite(TRIG_PIN, LOW);
 
-  // Wait for echo
-  unsigned long timeout = millis() + 50;
-  while (echo_duration == 0 && millis() < timeout) {
-    delayMicroseconds(10);
-  }
-
-  long duration = echo_duration;
-  echo_duration = 0;
-
+  long duration = pulseIn(ECHO_PIN, HIGH, 30000); // 30ms timeout ~= 500cm max
   if (duration == 0) return -1;
 
-  // Convert duration to distance: d = (duration * 0.0343) / 2
   float distance = (duration * 0.0343) / 2.0;
-
-  // Clamp to reasonable range
   if (distance > 400 || distance < 2) return -1;
 
   return distance;

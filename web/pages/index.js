@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-const ALERT_DIST = 50;
-const BLIP_LIFETIME = 5000;
+const BLIP_LIFETIME = 3000;
 const SWEEP_TRAIL_DEG = 30;
 
 function useRadar() {
@@ -34,9 +33,9 @@ function useRadar() {
     return () => { if (wsRef.current) wsRef.current.close(); };
   }, []);
 
-  const sendCommand = (cmd) => {
+  const sendCommand = (cmd, value) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ command: cmd }));
+      wsRef.current.send(JSON.stringify({ command: cmd, value }));
     }
   };
 
@@ -141,17 +140,14 @@ function RadarCanvas({ sweepAngleRef, detectionsRef, alertMode, maxDist }) {
         (d) => now - d.timestamp < BLIP_LIFETIME
       );
       detectionsRef.current.forEach((det) => {
-        if (det.distance <= 0) return;
+        if (det.distance <= 0 || det.distance > maxD) return;
         const age = now - det.timestamp;
-        ctx.globalAlpha = Math.max(0.2, 1 - age / BLIP_LIFETIME);
+        ctx.globalAlpha = Math.max(0, 1 - age / BLIP_LIFETIME);
         const rad = (det.angle * Math.PI) / 180;
-        const beyondRange = det.distance > maxD;
-        const clampedDist = Math.min(det.distance, maxD);
-        const r = (clampedDist / maxD) * radius;
-        // Yellow at outer ring = beyond max range, green/red = within range
-        ctx.fillStyle = beyondRange ? '#ffff00' : (alert ? '#ff5555' : '#00ff99');
+        const r = (det.distance / maxD) * radius;
+        ctx.fillStyle = alert ? '#ff5555' : '#00ff99';
         ctx.beginPath();
-        ctx.arc(cx + r * Math.cos(rad), cy - r * Math.sin(rad), beyondRange ? 4 : 5, 0, Math.PI * 2);
+        ctx.arc(cx + r * Math.cos(rad), cy - r * Math.sin(rad), 5, 0, Math.PI * 2);
         ctx.fill();
       });
 
@@ -247,17 +243,23 @@ export default function Home() {
   const [alertMode, setAlertMode] = useState(false);
   const [running, setRunning] = useState(false);
   const [maxDist, setMaxDist] = useState(30);
+  const maxDistRef = useRef(maxDist);
+  maxDistRef.current = maxDist;
 
   const handleStart = () => { sendCommand('start'); setRunning(true); };
   const handleStop = () => { sendCommand('stop'); setRunning(false); };
 
   useEffect(() => {
+    sendCommand('setRange', maxDist);
+  }, [maxDist]);
+
+  useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now();
-      const recent = detectionsRef.current.filter(
-        (d) => now - d.timestamp < 500 && d.distance > 0
+      const visibleDots = detectionsRef.current.filter(
+        (d) => now - d.timestamp < BLIP_LIFETIME && d.distance > 0 && d.distance <= maxDistRef.current
       );
-      setAlertMode(recent.length >= 3);
+      setAlertMode(visibleDots.length > 0);
     }, 200);
     return () => clearInterval(interval);
   }, [detectionsRef]);

@@ -68,6 +68,9 @@ wss.on('connection', (ws) => {
       } else if (data.command === 'stop') {
         port.write('STOP\n');
         console.log(`[${timestamp()}] [CMD   ] STOP sent to ESP32`);
+      } else if (data.command === 'setRange') {
+        port.write(`RANGE:${data.value}\n`);
+        console.log(`[${timestamp()}] [CMD   ] RANGE:${data.value} sent to ESP32`);
       }
     } catch (e) {}
   });

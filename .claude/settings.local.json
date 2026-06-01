@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod +x \"/Users/lesterdannlopez/Desktop/Dann_Folder/3rd Year/3rd Year Second Sem/Robotics 1/Final Project/start.sh\")"
+    ]
+  }
+}
